@@ -45,7 +45,6 @@ parseTextSection(char *name[]) {
     return {ret,ret+sz};
 }
 long long transToHex(std::string s){
-    // reverse(s.begin(),s.end());
     long long ret = 0;
     for(int i=2;i<(int)s.size();i++){
         if(s[i]=='x') return ret;
@@ -60,15 +59,14 @@ void errquit(const char *msg) {
 }
 void
 print_instruction(long long addr, instruction1 *in) {
-	int i;
 	char bytes[128] = "";
 	if(in == NULL) {
 		fprintf(stderr, "0x%012llx :\t<cannot disassemble>\n", addr);
 	} else {
-		for(i = 0; i < in->size; i++) {
+		for(int i = 0; i < in->size; i++) {
 			snprintf(&bytes[i*3], 4, "%2.2x ", in->bytes[i]);
 		}
-		fprintf(stderr, "      0x%012llx : %-32s\t%-10s%s\n", addr, bytes, in->opr.c_str(), in->opnd.c_str());
+		fprintf(stderr, "      %llx: %-32s\t%-10s%s\n", addr, bytes, in->opr.c_str(), in->opnd.c_str());
 	}
 }
 void
@@ -91,7 +89,7 @@ std::map<long long, instruction1>& instructions,csh& cshandle) {
 			print_instruction(nextrip,&mi->second);
 		}
 		if(*(it+4)>=entryPoint.second){
-			printf("** the address is out of the range of the text segment.\n");
+			printf("** the address is out of the range of the text section.\n");
 		}
 		return ;
 	}
@@ -104,12 +102,10 @@ std::map<long long, instruction1>& instructions,csh& cshandle) {
 	}
 
 	if(ptr == rip)  {
-		printf("** the address is out of the range of the text segment.\n");
+		printf("** the address is out of the range of the text section.\n");
 		return;
 	}
-    // printf("rip : %p\n",rip);
 	if((count = cs_disasm(cshandle, (uint8_t*) buf, rip-ptr, rip, 0, &insn)) > 0) {
-        // printf("count : %d\n",count);
 		int i;
 		for(i = 0; i < count; i++) {
 			instruction1 in;
@@ -128,7 +124,6 @@ std::map<long long, instruction1>& instructions,csh& cshandle) {
     int cc = std::min(dis,5);
     for(int i=0;i<cc;i++){
 		long long nextrip = *(it+i);
-		// printf("nextrip %llx end %llx\n",nextrip,entryPoint.second);
 		if(nextrip>=entryPoint.second) break;
         if((mi = instructions.find(nextrip)) != instructions.end()) {
             print_instruction(nextrip, &mi->second);
@@ -137,7 +132,7 @@ std::map<long long, instruction1>& instructions,csh& cshandle) {
         }
     }
 	if(*(it+4)>=entryPoint.second){
-		printf("** the address is out of the range of the text segment.\n");
+		printf("** the address is out of the range of the text section.\n");
 	}
 	return;
 }

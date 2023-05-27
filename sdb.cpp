@@ -129,9 +129,43 @@ SDB::timetravel(){
 				return -2;
 			}
 		}
-		// printf("0x%llx 0x%llx\n",r.begin,r.end);
 	}
+	setAllBreakPoints();
+	revertBreakPoint();
 	printf("** go back to the anchor point\n");
+	return 0;
+}
+int
+SDB::revertBreakPoint(){
+	struct user_regs_struct regs;
+	if(ptrace(PTRACE_GETREGS, this->child, 0, &regs) == 0)
+		this->history_regs = regs;
+	else{
+		cs_close(&this->cshandle);
+		return -1;
+	}
+	if(breakpoints.find(regs.rip)!=breakpoints.end()){
+		long long addr = regs.rip;
+		long long code = breakpoints[regs.rip];
+		if(ptrace(PTRACE_POKETEXT,this->child,addr,code) != 0 ){
+			cs_close(&this->cshandle);
+			return -1;
+		}
+	}
+	return 0;
+}
+int
+SDB::setAllBreakPoints(){
+	long long addr,code;
+	for(auto i:breakpoints){
+		addr = i.first;
+		code = i.second;
+		if(ptrace(PTRACE_POKETEXT,this->child,addr,(code & 0xffffffffffffff00) | 0xcc) != 0 ){
+			cs_close(&this->cshandle);
+			// errquit("ptrace(POKETEXT)");
+			return -1;
+		}
+	}
 	return 0;
 }
 int 

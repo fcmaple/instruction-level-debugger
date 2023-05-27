@@ -30,6 +30,8 @@ public:
     int checkBreakPoint();
     int end();
     bool checkWIFSTOPPED();
+    int setAllBreakPoints();
+    int revertBreakPoint();
     std::map<range_t, map_entry_t>::iterator check_maps(unsigned long long);
 private:
     pid_t child;
