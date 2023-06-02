@@ -1,7 +1,71 @@
 #include "sdb.h"
 #include "ptools.h"
+#include "util.h"
 
-
+CMD 
+nameToCmd(std::string command){
+	if(command=="exit") return EXIT;
+	if(command=="cont") return CONT;
+	if(command=="si") return SI;
+	if(command.substr(0,5)=="break") return BREAK;
+	if(command=="anchor") return ANCHOR;
+	if(command=="timetravel") return TIMETRAVEL;
+	if(command.substr(0,3)=="get") return GET;
+	if(command.substr(0,3)=="set") return SET;
+	if(command=="vmmap") return VMMAP;
+	return INVALID;
+}
+std::pair<REG,long long>
+commandToReg(std::string command){
+	std::stringstream ss(command);
+	std::vector<std::string> tokens;
+	std::string token;
+	while(std::getline(ss,token,' ')) {
+		tokens.push_back(token);
+	}
+	std::string reg = tokens[1];
+	std::pair<REG,long long> ret;
+	if(tokens.size()>2)	ret.second = transToHex(tokens[2]);
+	else	ret.second = 0;
+	if(reg == "r15" ) ret.first = R15;
+	else if(reg == "r14") ret.first =  R14;
+	else if(reg == "r13") ret.first =  R13;
+	else if(reg == "r12") ret.first =  R12;
+	else if(reg == "r11") ret.first =  R11;
+	else if(reg == "r10") ret.first =  R10;
+	else if(reg == "r9") ret.first =  R9;
+	else if(reg == "r8") ret.first =  R8;
+	else if(reg == "rax") ret.first =  RAX;
+	else if(reg == "rcx") ret.first =  RCX;
+	else if(reg == "rdx") ret.first =  RDX;
+	else if(reg == "rsi") ret.first =  RSI;
+	else if(reg == "rdi") ret.first =  RDI;
+	else if(reg == "orig_rax") ret.first =  ORIG_RAX;
+	else if(reg == "rip") ret.first =  RIP;
+	else if(reg == "cs") ret.first =  CS;
+	else if(reg == "eflags") ret.first =  EFLAGS;
+	else if(reg == "rsp") ret.first =  RSP;
+	else if(reg == "rbp") ret.first =  RBP;
+	else if(reg == "rbx") ret.first =  RBX;
+	else if(reg == "ss") ret.first =  SS;
+	else if(reg == "fs_base") ret.first =  FS_BASE;
+	else if(reg == "gs_base") ret.first =  GS_BASE;
+	else if(reg == "ds") ret.first =  DS;
+	else if(reg == "es") ret.first =  ES;
+	else if(reg == "fs") ret.first =  FS;
+	else if(reg == "gs") ret.first =  GS;
+	else ret.first =  ERR;
+	// printf("%llu\n",ret.second);
+	return ret;
+}
+long long 
+commandToAddr(std::string cmd){
+	std::stringstream ss(cmd);
+	std::vector<std::string> tokens;
+	std::string token;
+	while(std::getline(ss,token,' ')) tokens.push_back(token);
+	return transToHex(tokens[1]);
+}
 std::pair<long long,long long> 
 parseTextSection(char *name[]) {
     const char *filename = name[1];
@@ -44,16 +108,20 @@ parseTextSection(char *name[]) {
     fclose(file);
     return {ret,ret+sz};
 }
-long long transToHex(std::string s){
+long long 
+transToHex(std::string s){
     long long ret = 0;
+	if(s.size()<=2) return -1;
     for(int i=2;i<(int)s.size();i++){
         if(s[i]=='x') return ret;
         if(s[i] >='a' && s[i]<='f') ret  = ret*16+(s[i]-'a'+10);
-        else ret = ret*16+(s[i]-'0');
+        else if(s[i] >= '0' && s[i] <= '9') ret = ret*16+(s[i]-'0');
+		else return -1;
     }
     return ret;
 }
-void errquit(const char *msg) {
+void 
+errquit(const char *msg) {
 	perror(msg);
 	exit(-1);
 }

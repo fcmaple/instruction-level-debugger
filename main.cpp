@@ -2,9 +2,7 @@
 
 #include "ptools.h"
 #include "sdb.h"
-
-static std::set<std::string> commands = {"exit","cont","si","anchor","timetravel","break"};
-
+#include "util.h"
 int 
 main(int argc, char *argv[]){
     pid_t child;
@@ -20,12 +18,12 @@ main(int argc, char *argv[]){
 		execvp(argv[1], argv+1);
 		errquit("execvp");
 	} else {
+		setvbuf(stdin, nullptr, _IONBF, 0);
+		setvbuf(stdout, nullptr, _IONBF, 0);
 		SDB sdb(child);
 		std::pair<long long,long long> entryPoint = parseTextSection(argv);
 		sdb.setEntryPoint(entryPoint);
         printf("** program \'%s\' loaded. entry point 0x%llx \n",argv[0],entryPoint.first);
-		// std::map<range_t, map_entry_t> m;
-		// std::map<range_t, map_entry_t>::iterator mi;
 
         if(sdb.loadMaps()==0) {
 			sdb.end();
@@ -40,48 +38,96 @@ main(int argc, char *argv[]){
         while(sdb.checkWIFSTOPPED()){
             printf("(sdb) ");
             std::getline(std::cin,cmd);
-			if(commands.find(cmd)==commands.end()&&commands.find(cmd.substr(0,5))==commands.end()) continue;
-            if(cmd == "exit") break;
-            else if(cmd == "si"){
-				if(sdb.singleStep()<0){
-					errquit("ptrace(SINGLESTEP)");
+			CMD command = nameToCmd(cmd);			
+			switch (command)
+			{
+				case SI:{
+					if(sdb.singleStep()<0)
+						errquit("ptrace(SINGLESTEP)");
+					break;
 				}
-
-            }else if(cmd == "cont"){
-				// sdb.cont
-				if(sdb.cont()<0){
-					errquit("ptrace(CONT)");
+				case CONT:{
+					if(sdb.singleStep()<0)
+						errquit("ptrace(SINGLESTEP)");
+					sdb.setAllBreakPoints();
+					// sdb.revertBreakPoint();
+					if(sdb.cont()<0)
+						errquit("ptrace(CONT)");
+					break;
 				}
-
-            }else if(cmd.substr(0,5) == "break"){
-				std::stringstream ss(cmd);
-				std::vector<std::string> tokens;
-				std::string token;
-				while(std::getline(ss,token,' ')) tokens.push_back(token);
-				long long addr = transToHex(tokens[1]);
-				if(sdb.setBreakPoint(addr)<0){
-					printf("ss\n");
-					errquit("ptrace(POKETEXT)");
+				case BREAK:{
+					long long addr = commandToAddr(cmd);
+					if(addr<0){
+						printf("Invalid break point\n");
+						continue;
+					}
+					if(sdb.setBreakPoint(addr)<0)
+						errquit("ptrace(POKETEXT)");
+					break;
 				}
-
-				continue;
-			}else if(cmd == "anchor"){
-				if(sdb.setAnchor()<0){
-					errquit("ptrace(GETREGS)");
+				case ANCHOR:{
+					if(sdb.setAnchor()<0)
+						errquit("ptrace(GETREGS)");
+					break;
 				}
-
-				continue;
-			}else if(cmd== "timetravel"){
-				if(sdb.timetravel()<0){
-					errquit("ptrace(POKEDATA) or ptrace(SETREGS) ");
+				case TIMETRAVEL:{
+					if(sdb.timetravel()<0)
+						errquit("ptrace(POKEDATA) or ptrace(SETREGS) ");
+					break;
 				}
-
+				case GET:{
+					std::pair<REG,long long> reg = commandToReg(cmd);
+					if(reg.second < 0){
+						printf("Invalid register value\n");
+						continue;
+					}
+					if(sdb.getRegister(reg)<0)
+						errquit("ptrace(GETREGS)");
+					break;
+				}
+				case SET:{
+					std::pair<REG,long long> reg = commandToReg(cmd);
+					if(reg.second < 0){
+						printf("Invalid register value\n");
+						continue;
+					}
+					if(sdb.setRegister(reg)<0)
+						errquit("ptrace(SETREGS)");
+					break;
+				}
+				case VMMAP:{
+					if(sdb.getMaps()<0)
+						errquit("maps");
+					break;
+				}
+				default:
+					break;
 			}
-			if(sdb.checkBreakPoint()<0){
-				errquit("ptrace(POKETEXT)");
+
+			switch (command)
+			{
+				case SI:
+				{
+					if(sdb.checkBreakPoint(SINGLE_STEP) <0)
+						errquit("ptrace(POKETEXT)");
+					break;
+				}
+				case BREAK:
+				{
+					if(sdb.checkBreakPoint(BREAKPOINT) <0)
+						errquit("ptrace(POKETEXT)");
+					break;
+				}
+				case CONT:
+				case TIMETRAVEL:
+				{
+					if(sdb.checkBreakPoint(BASE) <0)
+						errquit("ptrace(POKETEXT)");
+					break;
+				}
+				default:
+					break;
 			}
-
-
         }
 		printf("** the target program terminated.\n");
 
