@@ -93,6 +93,8 @@ main(int argc, char *argv[]){
 					}
 					if(sdb.setRegister(reg)<0)
 						errquit("ptrace(SETREGS)");
+					if(sdb.getRegister(reg)<0)
+						errquit("ptrace(GETREGS)");
 					break;
 				}
 				case VMMAP:{

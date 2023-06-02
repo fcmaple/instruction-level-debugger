@@ -185,3 +185,71 @@ hello, world!
       4000d2: c3                              ret       
 ** the address is out of the range of the text section.
 ```
+### GET
+Command : `get <register>`  
+When a user use `get <register>` to get a value of register. The debugger will print a value about the register.  
+
+#### implement detail
+When getting a register. 
+1. Use `ptrace(GETREG)` to see information of all register.  
+2. Return the value of register. 
+
+```shell=
+** program './sdb' loaded. entry point 0x401000  
+      401000: f3 0f 1e fa                       endbr64    
+      401004: 55                                push      rbp 
+      401005: 48 89 e5                          mov       rbp, rsp
+      401008: ba 0e 00 00 00                    mov       edx, 0xe
+      40100d: 48 8d 05 ec 0f 00 00              lea       rax, [rip + 0xfec]
+(sdb) get rax
+rax : 0
+(sdb) 
+```
+ 
+### SET 
+Command : `set <register>  <value>(hex)`   
+When a user use `set <register>  <value>(hex)` to set a value of register. The debugger will print a value about the register after setting.  
+ 
+#### implement detail
+When setting a register. 
+1. Use `ptrace(SETREG)` to set register.  
+2. Return the value of register after setting. 
+
+```shell= 
+** program './sdb' loaded. entry point 0x401000 
+      401000: f3 0f 1e fa                       endbr64   
+      401004: 55                                push      rbp
+      401005: 48 89 e5                          mov       rbp, rsp
+      401008: ba 0e 00 00 00                    mov       edx, 0xe
+      40100d: 48 8d 05 ec 0f 00 00              lea       rax, [rip + 0xfec]
+(sdb) set rax 0x40
+rax : 40
+(sdb) 
+```
+
+### VMMAP
+Command : `vmmap`  
+When a user use `vmmap` to see the maps of the target process. The debugger will desplay the maps of target process.  
+
+#### implement detail 
+Load maps of process and store when debugger starting.  
+When the user call the `vmmap` function 
+2. Display the all maps information of target process. 
+
+```shell=
+** program './sdb' loaded. entry point 0x401000 
+      401000: f3 0f 1e fa                       endbr64   
+      401004: 55                                push      rbp
+      401005: 48 89 e5                          mov       rbp, rsp
+      401008: ba 0e 00 00 00                    mov       edx, 0xe
+      40100d: 48 8d 05 ec 0f 00 00              lea       rax, [rip + 0xfec]
+(sdb) vmmap
+00400000-00401000 r--p 00000000 fd:00 32001262                           /home/dave/hw2/hello
+00401000-00402000 r-xp 00001000 fd:00 32001262                           /home/dave/hw2/hello
+00402000-00403000 r--p 00002000 fd:00 32001262                           /home/dave/hw2/hello
+7fffb061e000-7fffb063f000 rwxp 00000000 00:00 0                          [stack]
+7fffb0728000-7fffb072c000 r--p 00000000 00:00 0                          [vvar]
+7fffb072c000-7fffb072e000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]
+(sdb) 
+```
