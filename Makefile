@@ -1,4 +1,12 @@
+SRC_DIR = src
+BIN_DIR = bin
+OBJ_DIR = obj
 
+SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+
+OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
+
+INC := -I$(SRC_DIR)
 
 CC	= gcc
 CXX	= g++
@@ -8,16 +16,17 @@ LDFLAGS =
 ASM64	= yasm -f elf64 -DYASM -D__x86_64__
 
 PROGS = sdb
+
+.PHONY = all clean
 all: $(PROGS)
 
-%.o: %.cpp
-	$(CXX) -c $(CFLAGS) $<
-%.o: %.c
-	$(CC) -c $(CFLAGS) $<
+$(shell mkdir -p $(OBJ_DIR))
+$(shell mkdir -p $(BIN_DIR))
 
-# sdb: sdb.o ptools.o util.o
-# 	$(CXX) -o $@ $^ $(LDFLAGS) -lcapstone
-sdb: main.o sdb.o ptools.o util.o
-	$(CXX) -o $@ $^ $(LDFLAGS) -lcapstone
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CXX) -c $(CFLAGS) $(INC) $< -o $@
+
+$(PROGS): $(OBJS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) -lcapstone
 clean:
-	rm -f *.o *~ $(PROGS)
+	rm -f $(OBJ_DIR)/*.o $(PROGS)

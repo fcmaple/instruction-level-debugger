@@ -4,7 +4,7 @@ I implement a simple instruction-level debugger that allow a user to bebug a pro
 ## How to use
 ```shell=
 make
-./sdb [program]
+./sdb bin/[program]
 ```
 
 ## Specification
