@@ -18,6 +18,6 @@ jobs:
           - name: dependency
             run: |
                 sudo apt-get update
-                sudo apt-get install -y ninja-build g++-12 build-essential libstdc++-12-dev libcapstone2 libcapstone-dev
+                sudo apt-get install -y ninja-build g++-12 build-essential libstdc++-12-dev libcapstone-dev
           - run: make
         
